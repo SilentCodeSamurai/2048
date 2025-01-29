@@ -4,12 +4,12 @@ export function calculateTurn(
 	gameSize: number,
 	fieldState: FieldState,
 	direction: Direction
-): { newFieldState: FieldState; newMergers: Merger[] } {
+): { newFieldState: FieldState; newMergers: Merger[]; fieldChanged: boolean } {
 	const newFieldState: FieldState = {
 		tiles: fieldState.tiles.map((tile) => ({ ...tile })), // Deep clone
 	};
-
 	const newMergers: Merger[] = [];
+	let tilesDidMove = false;
 
 	// Helper function to move and merge tiles
 	const moveAndMergeTiles = (
@@ -47,9 +47,16 @@ export function calculateTurn(
 			moveAndMergeTiles(
 				tileRow,
 				(tile) => tile.coordinates.x,
-				(tile, value) => (tile.coordinates.x = value),
+				(tile, value) => {
+					if (tile.coordinates.x !== value) tilesDidMove = true;
+					tile.coordinates.x = value;
+				},
 				(current) => {
-					for (let i = current + (isForward ? -1 : 1); isForward ? i >= 0 : i < gameSize; i += isForward ? -1 : 1) {
+					for (
+						let i = current + (isForward ? -1 : 1);
+						isForward ? i >= 0 : i < gameSize;
+						i += isForward ? -1 : 1
+					) {
 						const nearestTile = tileRow.find((tile) => tile.coordinates.x === i);
 						if (nearestTile) return nearestTile;
 					}
@@ -67,9 +74,16 @@ export function calculateTurn(
 			moveAndMergeTiles(
 				tileColumn,
 				(tile) => tile.coordinates.y,
-				(tile, value) => (tile.coordinates.y = value),
+				(tile, value) => {
+					if (tile.coordinates.y !== value) tilesDidMove = true;
+					tile.coordinates.y = value;
+				},
 				(current) => {
-					for (let i = current + (isForward ? -1 : 1); isForward ? i >= 0 : i < gameSize; i += isForward ? -1 : 1) {
+					for (
+						let i = current + (isForward ? -1 : 1);
+						isForward ? i >= 0 : i < gameSize;
+						i += isForward ? -1 : 1
+					) {
 						const nearestTile = tileColumn.find((tile) => tile.coordinates.y === i);
 						if (nearestTile) return nearestTile;
 					}
@@ -83,11 +97,11 @@ export function calculateTurn(
 	return {
 		newFieldState,
 		newMergers,
+		fieldChanged: tilesDidMove || newMergers.length > 0,
 	};
 }
 
 export function generateStartField(gameSize: number): FieldState {
-
 	return {
 		tiles: [
 			{

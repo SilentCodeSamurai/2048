@@ -1,11 +1,11 @@
 /// <reference types="vite-plugin-svgr/client" />
 import { Direction, FieldState, Merger } from "./types";
 import { KeyboardEventHandler, TouchEventHandler, useCallback, useEffect, useRef, useState } from "react";
+import { SWIPE_MIN_DISTANCE, TURN_ANIMATION_DURATION } from "./constants";
 import { calculateTurn, checkIfGameIsOver, generateStartField, getFreeCoordinates } from "./utils";
 import { getHighScore, updateHighScore } from "./storage";
 
 import RefreshIcon from "./assets/refresh.svg?react";
-import { TURN_ANIMATION_DURATION } from "./constants";
 import { Tile } from "./components/Tile";
 
 const GAME_SIZE = 4;
@@ -28,6 +28,8 @@ export default function App() {
 	const touchStartRef = useRef<[number, number] | null>(null);
 
 	const [fieldSize, setFieldSize] = useState(0);
+
+	const fieldChangedRef = useRef(false);
 
 	// Focus on the game field
 	useEffect(() => {
@@ -65,14 +67,16 @@ export default function App() {
 					});
 
 				// Add new tile if possible
-				const freeCoordinates = getFreeCoordinates(prevState, GAME_SIZE);
-				if (freeCoordinates) {
-					const power = Math.round(Math.random()) + 1;
-					newTiles.push({
-						id: ++latestTileId.current,
-						coordinates: freeCoordinates,
-						power,
-					});
+				if (fieldChangedRef.current) {
+					const freeCoordinates = getFreeCoordinates(prevState, GAME_SIZE);
+					if (freeCoordinates) {
+						const power = Math.round(Math.random()) + 1;
+						newTiles.push({
+							id: ++latestTileId.current,
+							coordinates: freeCoordinates,
+							power,
+						});
+					}
 				}
 				return {
 					tiles: newTiles,
@@ -106,15 +110,16 @@ export default function App() {
 			if (animating) return;
 			setAnimating(true);
 
-			console.log("handleMakeTurn", direction);
+			const { newFieldState, newMergers, fieldChanged } = calculateTurn(GAME_SIZE, fieldState, direction);
 
-			const { newFieldState, newMergers } = calculateTurn(GAME_SIZE, fieldState, direction);
-
+			fieldChangedRef.current = fieldChanged;
 			turnDirection.current = direction;
 
 			setFieldState(newFieldState);
 			setMergers(newMergers);
-			setTurnsPlayed((prevState) => prevState + 1);
+			if (fieldChanged) {
+				setTurnsPlayed((prevState) => prevState + 1);
+			}
 		},
 		[animating, fieldState]
 	);
@@ -159,14 +164,14 @@ export default function App() {
 		const horizontalDiff = endX - startX;
 		if (Math.abs(verticalDiff) > Math.abs(horizontalDiff)) {
 			// Vertical swipe
-			if (verticalDiff > 0) {
+			if (verticalDiff > SWIPE_MIN_DISTANCE) {
 				handleMakeTurn("DOWN");
 			} else {
 				handleMakeTurn("UP");
 			}
 		} else {
 			// Horizontal swipe
-			if (horizontalDiff > 0) {
+			if (horizontalDiff > SWIPE_MIN_DISTANCE) {
 				handleMakeTurn("RIGHT");
 			} else {
 				handleMakeTurn("LEFT");
