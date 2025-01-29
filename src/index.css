@@ -1,0 +1,145 @@
+:root {
+	font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+	line-height: 1.5;
+	font-weight: 700;
+
+	color-scheme: light dark;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+  --dark-text-color: #fff;
+  --light-text-color: #000;
+
+  --dark-bg-color: #242424;
+  --light-bg-color: #fff;
+
+  --dark-surface-color: #0e0c0c;
+  --light-surface-color: #eeeeee;
+
+	--tile-color-1: #ffec44;
+	--tile-color-2: #ffcc00;
+	--tile-color-3: #ff8000;
+	--tile-color-4: #ff0000;
+	--tile-color-5: #800000;
+	--tile-color-6: #400000;
+	--tile-color-7: #000000;
+	--tile-color-8: #1d00be;
+	--tile-color-9: #003cbe;
+	--tile-color-10: #007add;
+	--tile-color-11: #01b8f0;
+
+	--padding: 10px;
+
+  color: var(--dark-text-color);
+  background-color: var(--dark-bg-color);
+}
+
+body {
+	margin: 0;
+	display: grid;
+	place-items: center;
+	min-width: 320px;
+	min-height: 100vh;
+}
+
+button {
+	border-radius: 8px;
+	border: 1px solid transparent;
+	padding: 0.3em 0.6em;
+	font-size: 1em;
+	font-weight: 500;
+	font-family: inherit;
+	background-color: var(--dark-surface-color);
+	cursor: pointer;
+	transition: border-color 0.25s;
+  aspect-ratio: 1;
+}
+button:hover {
+	border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+	outline: 4px auto -webkit-focus-ring-color;
+}
+button:active {
+  transform: scale(0.95);
+}
+
+svg {
+  fill: var(--dark-text-color);
+}
+
+.field {
+	position: relative;
+	padding-top: var(--padding);
+	padding-left: var(--padding);
+	background-color: rgba(255, 69, 69, 0.51);
+	border-radius: 2%;
+}
+
+.field:focus {
+	outline: none;
+}
+
+.tile {
+  color: white;
+	position: absolute;
+	transform-origin: center center;
+	border-radius: 8%;
+	transition: background-color 0.2s ease-in-out;
+	display: grid;
+	place-items: center;
+	font-size: 2.4rem;
+	touch-action: none;
+}
+
+.game-over {
+	z-index: 2;
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-color: rgba(175, 175, 175, 0.51);
+	border-radius: 2%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+}
+
+.score {
+  font-size: 1.8rem;
+}
+
+.info {
+  font-size: 1.2rem;
+}
+
+@media (prefers-color-scheme: light) {
+	:root {
+		color: var(--light-text-color);
+		background-color: var(--light-bg-color);
+	}
+	button {
+		background-color: var(--light-surface-color);
+	}
+  svg {
+    fill: var(--light-text-color);
+  }
+}
+
+@media (max-width: 600px) {
+	.tile {
+		font-size: 2rem;
+	}
+}
+
+@media (max-width: 400px) {
+	.tile {
+		font-size: 1.5rem;
+	}
+}
