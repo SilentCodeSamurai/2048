@@ -1,50 +1,70 @@
-# React + TypeScript + Vite
+# 2048 Game in React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Welcome to the 2048 Game built with React! This project is a fun and interactive implementation of the popular sliding puzzle game, 2048. The objective of the game is to slide numbered tiles on a grid to combine them and get maximum score.
 
-Currently, two official plugins are available:
+## Table of Contents
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Gameplay](#gameplay)
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- Responsive design that adapts to different screen sizes.
+- Smooth animations for tile movements and merges.
+- High score tracking using local storage.
+- Touch and keyboard controls for easy gameplay.
+- Game over detection and restart functionality.
 
-- Configure the top-level `parserOptions` property like this:
+## Technologies Used
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+- **React**: A JavaScript library for building user interfaces.
+- **GSAP**: A powerful animation library for creating smooth animations.
+- **TypeScript**: A superset of JavaScript that adds static types.
+- **CSS**: For styling the game interface.
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Installation
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+To get started with the project, follow these steps:
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/SilentCodeSamurai/2048.git
+   ```
+
+2. Navigate to the project directory:
+
+   ```bash
+   cd 2048
+   ```
+
+3. Install the dependencies:
+
+   ```bash
+   npm install
+   ```
+
+4. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+5. Open your browser and go to `http://localhost:5173` to see the game in action!
+
+## Usage
+
+- Use the arrow keys on your keyboard to move the tiles in the desired direction.
+- You can also swipe on touch devices to move the tiles.
+- The game will automatically generate a new tile after each turn.
+- Try to combine the tiles to get maximum score!
+
+## Gameplay
+
+- The game starts with one tile on the board.
+- Tiles with the same number will merge into one when they collide.
+- The game ends when there are no more valid moves available.
+- Your score increases with each merge, and the highest score is saved in local storage.
