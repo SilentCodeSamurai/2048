@@ -161,17 +161,20 @@ export default function App() {
 		if (!touchStartRef.current) return;
 		const [startX, startY] = touchStartRef.current;
 		const verticalDiff = endY - startY;
+		const verticalDistance = Math.abs(endY - startY);
 		const horizontalDiff = endX - startX;
-		if (Math.abs(verticalDiff) > Math.abs(horizontalDiff)) {
+		const horizontalDistance = Math.abs(endX - startX);
+		if (verticalDistance < SWIPE_MIN_DISTANCE || horizontalDistance < SWIPE_MIN_DISTANCE) return;
+		if (verticalDistance > horizontalDistance) {
 			// Vertical swipe
-			if (verticalDiff > SWIPE_MIN_DISTANCE) {
+			if (verticalDiff > 0) {
 				handleMakeTurn("DOWN");
 			} else {
 				handleMakeTurn("UP");
 			}
 		} else {
 			// Horizontal swipe
-			if (horizontalDiff > SWIPE_MIN_DISTANCE) {
+			if (horizontalDiff > 0) {
 				handleMakeTurn("RIGHT");
 			} else {
 				handleMakeTurn("LEFT");
