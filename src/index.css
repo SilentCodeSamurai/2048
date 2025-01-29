@@ -41,7 +41,9 @@ body {
 	display: grid;
 	place-items: center;
 	min-width: 320px;
-	min-height: 100vh;
+	height: 100dvh;
+  touch-action: none;
+  -ms-touch-action: none;
 }
 
 button {
@@ -92,7 +94,6 @@ svg {
 	display: grid;
 	place-items: center;
 	font-size: 2.4rem;
-	touch-action: none;
 }
 
 .game-over {
