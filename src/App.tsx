@@ -5,13 +5,45 @@ import { SWIPE_MIN_DISTANCE, TURN_ANIMATION_DURATION } from "./constants";
 import { calculateTurn, checkIfGameIsOver, generateStartField, getFreeCoordinates } from "./utils";
 import { getHighScore, updateHighScore } from "./storage";
 
-import RefreshIcon from "./assets/refresh.svg?react";
 import { Tile } from "./components/Tile";
 
 const GAME_SIZE = 4;
 
+const getMockedField = (gameSize: number): FieldState => {
+	let tileId = 0;
+	const tiles = [
+		{
+			id: ++tileId,
+			coordinates: { x: 0, y: 0 },
+			power: 1,
+		},
+		{
+			id: ++tileId,
+			coordinates: { x: 1, y: 0 },
+			power: 1,
+		},
+	];
+
+	for (let y = 0; y < gameSize; y++) {
+		for (let x = 0; x < gameSize; x++) {
+			if (tiles.every((tile) => tile.coordinates.x !== x || tile.coordinates.y !== y)) {
+				tiles.push({
+					id: ++tileId,
+					coordinates: { x, y },
+					power: tileId - 1,
+				});
+			}
+		}
+	}
+
+	return {
+		tiles,
+	};
+};
+
 export default function App() {
-	const [fieldState, setFieldState] = useState<FieldState>(() => generateStartField(GAME_SIZE));
+	// const [fieldState, setFieldState] = useState<FieldState>(() => generateStartField(GAME_SIZE));
+	const [fieldState, setFieldState] = useState<FieldState>(() => getMockedField(GAME_SIZE));
 	const [mergers, setMergers] = useState<Merger[]>([]);
 	const latestTileId = useRef(1);
 	const turnDirection = useRef<Direction>(null!);
@@ -130,6 +162,7 @@ export default function App() {
 		setTurnsPlayed(0);
 		setScore(0);
 		setGameOver(false);
+		gameFieldRef.current?.focus();
 	}, []);
 
 	const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = useCallback(
@@ -183,50 +216,69 @@ export default function App() {
 	};
 
 	return (
-		<div
-			className="field"
-			ref={gameFieldRef}
-			tabIndex={1}
-			onKeyDown={handleKeyDown}
-			onTouchStart={handleTouchStart}
-			onTouchEnd={handleTouchEnd}
-			style={{
-				width: GAME_SIZE * fieldSize,
-				height: GAME_SIZE * fieldSize,
-			}}
-		>
-			<div
-				style={{
-					position: "absolute",
-					top: -30,
-					left: 0,
-					width: "100%",
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "center",
-				}}
-			>
-				<span className="info">Turns: {turnsPlayed}</span>
-				<span className="info">Score: {score}</span>
-			</div>
-			{gameOver && (
-				<div className="game-over">
-					<span className="score">Score: {score}</span>
-					<span className="score">HighScore: {getHighScore(GAME_SIZE)}</span>
-					<button onClick={handleRestart}>
-						<RefreshIcon width={32} height={32} />
-					</button>
+		<div className="flex justify-center items-center bg-gradient-to-br from-gray-900 to-black p-4 min-h-screen">
+			<div className="text-center">
+				<div className="flex flex-row justify-between items-baseline mb-6 px-1">
+					<div className="flex flex-col items-center">
+						<span className="bg-clip-text bg-gradient-to-br from-orange-100 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+							SCORE
+						</span>
+						<span className="bg-clip-text bg-gradient-to-r from-purple-300 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+							{score}
+						</span>
+					</div>
+					<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
+						2048
+					</h1>
+					<div className="flex flex-col items-center">
+						<span className="bg-clip-text bg-gradient-to-br from-purple-100 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+							TURNS
+						</span>
+						<span className="bg-clip-text bg-gradient-to-br from-orange-300 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+							{turnsPlayed}
+						</span>
+					</div>
 				</div>
-			)}
-			{fieldState.tiles.map((tile) => (
-				<Tile
-					size={fieldSize}
-					key={tile.id}
-					power={tile.power}
-					coordinates={{ x: tile.coordinates.x * fieldSize, y: tile.coordinates.y * fieldSize }}
-					mergeDirection={mergers.find((merger) => merger.fromId === tile.id) && turnDirection.current}
-				/>
-			))}
+				<div className="mx-auto w-full max-w-2xl">
+					<div
+						className="relative bg-board-bg shadow-neon p-6 rounded-2xl"
+						ref={gameFieldRef}
+						tabIndex={1}
+						onKeyDown={handleKeyDown}
+						onTouchStart={handleTouchStart}
+						onTouchEnd={handleTouchEnd}
+						style={{
+							width: GAME_SIZE * fieldSize,
+							height: GAME_SIZE * fieldSize,
+						}}
+					>
+						{gameOver && (
+							<div className="top-0 right-0 bottom-0 left-0 z-10 absolute flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55">
+								<span className="bg-clip-text bg-gradient-to-l from-pink-100 to-purple-300 font-bold text-4xl text-transparent">
+									HighScore: {getHighScore(GAME_SIZE)}
+								</span>
+								<button
+									onClick={handleRestart}
+									className="bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-4 py-2 rounded-xl font-bold text-4xl text-black active:scale-95"
+								>
+									Restart
+								</button>
+							</div>
+						)}
+						{fieldState.tiles.map((tile) => (
+							<Tile
+								size={fieldSize - 20}
+								key={tile.id}
+								power={tile.power}
+								coordinates={{
+									x: tile.coordinates.x * fieldSize - 15,
+									y: tile.coordinates.y * fieldSize - 15,
+								}}
+							/>
+						))}
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }

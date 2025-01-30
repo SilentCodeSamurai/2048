@@ -1,32 +1,16 @@
-import { Coordinates, Direction } from "../types";
-import {
-	MERGER_IN_ANIMATION_DURATION,
-	MERGER_OUT_ANIMATION_DURATION,
-	MERGE_START_PERCENTAGE,
-	TURN_ANIMATION_DURATION,
-} from "../constants";
 import { memo, useEffect, useRef } from "react";
 
+import { Coordinates } from "../types";
+import { TURN_ANIMATION_DURATION } from "../constants";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
 const turnAnimationDuration = TURN_ANIMATION_DURATION / 1000;
-const mergerInAnimationDuration = MERGER_IN_ANIMATION_DURATION / 1000;
-const mergerOutAnimationDuration = MERGER_OUT_ANIMATION_DURATION / 1000;
 
 type TileProps = {
 	size: number;
 	power: number;
 	coordinates: Coordinates;
-	isMerger?: boolean;
-	mergeDirection?: Direction;
-};
-
-const borderSide: Record<Direction, string> = {
-	UP: "borderTop",
-	RIGHT: "borderRight",
-	DOWN: "borderBottom",
-	LEFT: "borderLeft",
 };
 
 export const Tile: React.FC<TileProps> = memo(
@@ -45,7 +29,7 @@ export const Tile: React.FC<TileProps> = memo(
 			gsap.timeline()
 				.to(boxRef.current, {
 					scale: 1.1,
-					duration: 0.1,
+					duration: 0.2,
 				})
 				.to(boxRef.current, {
 					scale: 1,
@@ -56,83 +40,70 @@ export const Tile: React.FC<TileProps> = memo(
 		useGSAP(
 			() => {
 				const coordinates = props.coordinates;
-				const growDirection = props.mergeDirection;
 				const startX = Number(gsap.getProperty(boxRef.current, "x"));
 				const startY = Number(gsap.getProperty(boxRef.current, "y"));
 				if (startX !== coordinates.x) {
-					const distanceX = Math.abs(startX - coordinates.x);
 					gsap.to(boxRef.current, {
 						x: coordinates.x,
 						duration: turnAnimationDuration,
-						onUpdate: () => {
-							if (!growDirection) return;
-							const borderParameter = borderSide[growDirection];
-							const currentX = Number(gsap.getProperty(boxRef.current, "x"));
-							const elapsedX = Math.abs(currentX - startX);
-							const percentage = Math.round((elapsedX / distanceX) * 100);
-							if (percentage === MERGE_START_PERCENTAGE) {
-								gsap.timeline()
-									.to(boxRef.current, {
-										[borderParameter]: `50px solid var(--tile-color-${props.power})`,
-										duration: mergerInAnimationDuration,
-									})
-									.to(boxRef.current, {
-										[borderParameter]: "0px solid transparent",
-										duration: mergerOutAnimationDuration,
-									});
-							}
-						},
 					});
 				}
 				if (startY !== coordinates.y) {
-					const distanceY = Math.abs(startY - coordinates.y);
 					gsap.to(boxRef.current, {
 						y: coordinates.y,
 						duration: turnAnimationDuration,
-						onUpdate: () => {
-							if (!growDirection) return;
-							const borderParameter = borderSide[growDirection];
-							const currentY = Number(gsap.getProperty(boxRef.current, "y"));
-							const elapsedY = Math.abs(currentY - startY);
-							const percentage = Math.round((elapsedY / distanceY) * 100);
-							if (percentage === MERGE_START_PERCENTAGE) {
-								gsap.timeline()
-									.to(boxRef.current, {
-										[borderParameter]: `50px solid var(--tile-color-${props.power})`,
-										duration: mergerInAnimationDuration,
-									})
-									.to(boxRef.current, {
-										[borderParameter]: "0px solid transparent",
-										duration: mergerOutAnimationDuration,
-									});
-							}
-						},
 					});
 				}
 			},
-			{ dependencies: [props.coordinates, props.mergeDirection], scope: boxRef }
+			{ dependencies: [props.coordinates], scope: boxRef }
 		);
 
 		return (
-			<div
-				className="tile"
-				ref={boxRef}
-				style={{
-					backgroundColor: `var(--tile-color-${props.power})`,
-					width: `calc(${props.size}px - var(--padding))`,
-					height: `calc(${props.size}px - var(--padding))`,
-				}}
-			>
-				{2 ** props.power}
-			</div>
+			<>
+				<div
+					className={`absolute rounded-xl backdrop-blur-sm opacity-95`}
+					ref={boxRef}
+					style={{
+						width: props.size,
+						height: props.size,
+					}}
+				>
+					{props.power >= 11 && (
+						<div
+							className="absolute bg-transparent rounded-xl animate-epic-shadow"
+							style={{
+								width: props.size,
+								height: props.size,
+							}}
+						/>
+					)}
+					<div
+						className="top-0 right-0 bottom-0 left-0 absolute flex justify-center items-center rounded-xl"
+						style={{
+							backgroundColor: `var(--tile-${props.power})`,
+							boxShadow: `0 0 ${Math.floor(props.power)}px 1px var(--tile-${props.power})`,
+							transition: "background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+						}}
+					>
+						<span
+							style={{
+								lineHeight: `${props.size}px`,
+								fontSize: `${props.size / 2 - props.power }px`,
+							}}
+							className="bg-clip-text bg-gradient-to-br from-white to-gray-300 font-bold text-transparent animate-pulse-slow"
+						>
+							{2 ** props.power}
+						</span>
+					</div>
+				</div>
+			</>
 		);
 	},
 	(prevProps, nextProps) => {
 		return (
 			prevProps.power === nextProps.power &&
 			prevProps.coordinates.x === nextProps.coordinates.x &&
-			prevProps.coordinates.y === nextProps.coordinates.y &&
-			prevProps.mergeDirection === nextProps.mergeDirection
+			prevProps.coordinates.y === nextProps.coordinates.y
 		);
 	}
 );
