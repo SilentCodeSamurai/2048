@@ -1,16 +1,17 @@
-/// <reference types="vite-plugin-svgr/client" />
 import { Direction, FieldState, Merger } from "./types";
 import { KeyboardEventHandler, TouchEventHandler, useCallback, useEffect, useRef, useState } from "react";
-import { SWIPE_MIN_DISTANCE, TURN_ANIMATION_DURATION } from "./constants";
 import { calculateTurn, checkIfGameIsOver, generateStartField, getFreeCoordinates } from "./utils";
 import { getHighScore, updateHighScore } from "./storage";
 
+import { TURN_ANIMATION_DURATION } from "./constants";
 import { Tile } from "./components/Tile";
 
-const GAME_SIZE = 4;
-
 export default function App() {
-	const [fieldState, setFieldState] = useState<FieldState>(() => generateStartField(GAME_SIZE));
+	const [menuOpen, setMenuOpen] = useState(true);
+
+	const [gameSize, setGameSize] = useState(4);
+
+	const [fieldState, setFieldState] = useState<FieldState>({ tiles: [] });
 	const [mergers, setMergers] = useState<Merger[]>([]);
 	const latestTileId = useRef(1);
 	const turnDirection = useRef<Direction>(null!);
@@ -41,7 +42,7 @@ export default function App() {
 	useEffect(() => {
 		const updateFieldSize = () => {
 			const width = window.innerWidth;
-			const newSize = Math.min((width - 32) / GAME_SIZE, 120);
+			const newSize = Math.min((width - 32) / gameSize, 120);
 			setFieldSize(newSize);
 		};
 		updateFieldSize();
@@ -49,7 +50,7 @@ export default function App() {
 		return () => {
 			window.removeEventListener("resize", updateFieldSize);
 		};
-	}, []);
+	}, [gameSize]);
 
 	// Delayed effect to set new states after animation
 	useEffect(() => {
@@ -67,7 +68,7 @@ export default function App() {
 
 				// Add new tile if possible
 				if (fieldChangedRef.current) {
-					const freeCoordinates = getFreeCoordinates(prevState, GAME_SIZE);
+					const freeCoordinates = getFreeCoordinates(prevState, gameSize);
 					if (freeCoordinates) {
 						const power = Math.round(Math.random()) + 1;
 						newTiles.push({
@@ -85,7 +86,7 @@ export default function App() {
 			setAnimating(false);
 		}, TURN_ANIMATION_DURATION);
 		return () => clearTimeout(timer);
-	}, [animating, mergers]);
+	}, [gameSize, animating, mergers]);
 
 	// Updating score
 	useEffect(() => {
@@ -99,17 +100,17 @@ export default function App() {
 
 	// Check if game is over
 	useEffect(() => {
-		if (!checkIfGameIsOver(fieldState, GAME_SIZE)) return;
-		updateHighScore(GAME_SIZE, score);
+		if (!checkIfGameIsOver(fieldState, gameSize)) return;
+		updateHighScore(gameSize, score);
 		setGameOver(true);
-	}, [fieldState, score]);
+	}, [gameSize, fieldState, score]);
 
 	const handleMakeTurn = useCallback(
 		(direction: Direction) => {
 			if (animating) return;
 			setAnimating(true);
 
-			const { newFieldState, newMergers, fieldChanged } = calculateTurn(GAME_SIZE, fieldState, direction);
+			const { newFieldState, newMergers, fieldChanged } = calculateTurn(gameSize, fieldState, direction);
 
 			fieldChangedRef.current = fieldChanged;
 			turnDirection.current = direction;
@@ -120,28 +121,29 @@ export default function App() {
 				setTurnsPlayed((prevState) => prevState + 1);
 			}
 		},
-		[animating, fieldState]
+		[gameSize, animating, fieldState]
 	);
 
-	const handleRestart = useCallback(() => {
-		setFieldState(() => generateStartField(GAME_SIZE));
+	const handleStartGame = useCallback(() => {
 		setMergers([]);
 		setTurnsPlayed(0);
 		setScore(0);
 		setGameOver(false);
 		gameFieldRef.current?.focus();
-	}, []);
+		setFieldState(() => generateStartField(gameSize));
+		setMenuOpen(false);
+	}, [gameSize]);
 
 	const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = useCallback(
 		(event) => {
 			const key = event.key;
-			if (key.toLowerCase() === "r") return handleRestart();
+			if (key.toLowerCase() === "r") return handleStartGame();
 			if (!key.includes("Arrow")) return;
 			const direction = key.replace("Arrow", "").toUpperCase();
 			if (direction !== "LEFT" && direction !== "RIGHT" && direction !== "UP" && direction !== "DOWN") return;
 			handleMakeTurn(direction);
 		},
-		[handleMakeTurn, handleRestart]
+		[handleMakeTurn, handleStartGame]
 	);
 
 	const handleTouchStart: TouchEventHandler<HTMLDivElement> = (event) => {
@@ -164,7 +166,6 @@ export default function App() {
 		const verticalDistance = Math.abs(endY - startY);
 		const horizontalDiff = endX - startX;
 		const horizontalDistance = Math.abs(endX - startX);
-		if (verticalDistance < SWIPE_MIN_DISTANCE || horizontalDistance < SWIPE_MIN_DISTANCE) return;
 		if (verticalDistance > horizontalDistance) {
 			// Vertical swipe
 			if (verticalDiff > 0) {
@@ -185,66 +186,122 @@ export default function App() {
 	return (
 		<div className="flex justify-center items-center bg-gradient-to-br from-gray-900 to-black p-4 h-dvh touch-none">
 			<div className="text-center">
-				<div className="flex flex-row justify-between items-baseline mb-6 px-1">
-					<div className="flex flex-col items-center">
-						<span className="bg-clip-text bg-gradient-to-br from-orange-100 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
-							SCORE
-						</span>
-						<span className="bg-clip-text bg-gradient-to-r from-purple-300 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
-							{score}
-						</span>
-					</div>
-					<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
-						2048
-					</h1>
-					<div className="flex flex-col items-center">
-						<span className="bg-clip-text bg-gradient-to-br from-purple-100 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
-							TURNS
-						</span>
-						<span className="bg-clip-text bg-gradient-to-br from-orange-300 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
-							{turnsPlayed}
-						</span>
-					</div>
-				</div>
-				<div className="mx-auto w-full max-w-2xl">
-					<div
-						className="relative bg-board-bg shadow-neon p-6 rounded-2xl"
-						ref={gameFieldRef}
-						tabIndex={1}
-						onKeyDown={handleKeyDown}
-						onTouchStart={handleTouchStart}
-						onTouchEnd={handleTouchEnd}
-						style={{
-							width: GAME_SIZE * fieldSize,
-							height: GAME_SIZE * fieldSize,
-						}}
-					>
-						{gameOver && (
-							<div className="top-0 right-0 bottom-0 left-0 z-10 absolute flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55">
-								<span className="bg-clip-text bg-gradient-to-l from-pink-100 to-purple-300 font-bold text-4xl text-transparent">
-									HighScore: {getHighScore(GAME_SIZE)}
-								</span>
+				{menuOpen ? (
+					<>
+						<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
+							2048
+						</h1>
+						<div className="relative flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55 shadow-neon p-6 rounded-2xl">
+							<div className="flex flex-row gap-2">
 								<button
-									onClick={handleRestart}
-									className="bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-4 py-2 rounded-xl font-bold text-4xl text-black active:scale-95"
+									onClick={() => setGameSize(3)}
+									className={`${
+										gameSize === 3 ? "shadow-neon" : ""
+									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
 								>
-									Restart
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+										3
+									</h1>
+								</button>
+								<button
+									onClick={() => setGameSize(4)}
+									className={`${
+										gameSize === 4 ? "shadow-neon" : ""
+									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
+								>
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+										4
+									</h1>
+								</button>
+								<button
+									onClick={() => setGameSize(5)}
+									className={`${
+										gameSize === 5 ? "shadow-neon" : ""
+									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
+								>
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+										5
+									</h1>
 								</button>
 							</div>
-						)}
-						{fieldState.tiles.map((tile) => (
-							<Tile
-								size={fieldSize - 20}
-								key={tile.id}
-								power={tile.power}
-								coordinates={{
-									x: tile.coordinates.x * fieldSize - 15,
-									y: tile.coordinates.y * fieldSize - 15,
+							<button
+								onClick={() => handleStartGame()}
+								className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
+							>
+								<h1 className="font-bold text-3xl text-black sm:text-2xl">PLAY</h1>
+							</button>
+						</div>
+					</>
+				) : (
+					<>
+						<div className="flex flex-row justify-between items-baseline mb-6 px-1">
+							<div className="flex flex-col items-center">
+								<span className="bg-clip-text bg-gradient-to-br from-orange-100 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+									SCORE
+								</span>
+								<span className="bg-clip-text bg-gradient-to-r from-purple-300 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+									{score}
+								</span>
+							</div>
+							<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
+								2048
+							</h1>
+							<div className="flex flex-col items-center">
+								<span className="bg-clip-text bg-gradient-to-br from-purple-100 to-pink-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+									TURNS
+								</span>
+								<span className="bg-clip-text bg-gradient-to-br from-orange-300 to-purple-500 drop-shadow-sm font-bold text-transparent text-xl sm:text-3xl">
+									{turnsPlayed}
+								</span>
+							</div>
+						</div>
+						<div className="mx-auto w-full max-w-2xl">
+							<div
+								className="relative bg-board-bg shadow-neon p-6 rounded-2xl"
+								ref={gameFieldRef}
+								tabIndex={1}
+								onKeyDown={handleKeyDown}
+								onTouchStart={handleTouchStart}
+								onTouchEnd={handleTouchEnd}
+								style={{
+									width: gameSize * fieldSize,
+									height: gameSize * fieldSize,
 								}}
-							/>
-						))}
-					</div>
-				</div>
+							>
+								{gameOver && (
+									<div className="top-0 right-0 bottom-0 left-0 z-10 absolute flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55">
+										<span className="bg-clip-text bg-gradient-to-l from-pink-100 to-purple-300 font-bold text-4xl text-transparent">
+											HIGH SCORE: {getHighScore(gameSize)}
+										</span>
+										<button
+											onClick={() => handleStartGame()}
+											className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
+										>
+											<h1 className="font-bold text-3xl text-black sm:text-2xl">RESTART</h1>
+										</button>
+										<button
+											onClick={() => setMenuOpen(true)}
+											className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
+										>
+											<h1 className="font-bold text-3xl text-black sm:text-2xl">MENU</h1>
+										</button>
+									</div>
+								)}
+								{fieldState.tiles.map((tile) => (
+									<Tile
+										size={fieldSize - 20}
+										key={tile.id}
+										power={tile.power}
+										coordinates={{
+											x: tile.coordinates.x * fieldSize - 15,
+											y: tile.coordinates.y * fieldSize - 15,
+										}}
+									/>
+								))}
+							</div>
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);
