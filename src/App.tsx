@@ -9,41 +9,8 @@ import { Tile } from "./components/Tile";
 
 const GAME_SIZE = 4;
 
-const getMockedField = (gameSize: number): FieldState => {
-	let tileId = 0;
-	const tiles = [
-		{
-			id: ++tileId,
-			coordinates: { x: 0, y: 0 },
-			power: 1,
-		},
-		{
-			id: ++tileId,
-			coordinates: { x: 1, y: 0 },
-			power: 1,
-		},
-	];
-
-	for (let y = 0; y < gameSize; y++) {
-		for (let x = 0; x < gameSize; x++) {
-			if (tiles.every((tile) => tile.coordinates.x !== x || tile.coordinates.y !== y)) {
-				tiles.push({
-					id: ++tileId,
-					coordinates: { x, y },
-					power: tileId - 1,
-				});
-			}
-		}
-	}
-
-	return {
-		tiles,
-	};
-};
-
 export default function App() {
-	// const [fieldState, setFieldState] = useState<FieldState>(() => generateStartField(GAME_SIZE));
-	const [fieldState, setFieldState] = useState<FieldState>(() => getMockedField(GAME_SIZE));
+	const [fieldState, setFieldState] = useState<FieldState>(() => generateStartField(GAME_SIZE));
 	const [mergers, setMergers] = useState<Merger[]>([]);
 	const latestTileId = useRef(1);
 	const turnDirection = useRef<Direction>(null!);
