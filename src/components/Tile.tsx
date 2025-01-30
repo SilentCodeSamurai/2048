@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef } from "react";
 
 import { Coordinates } from "../types";
 import { TURN_ANIMATION_DURATION } from "../constants";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+const turnAnimationDuration = TURN_ANIMATION_DURATION / 1000;
 
 type TileProps = {
 	size: number;
@@ -9,43 +13,71 @@ type TileProps = {
 	coordinates: Coordinates;
 };
 
-export const Tile: React.FC<TileProps> = (props) => {
-	const boxRef = useRef<HTMLDivElement>(null);
-	const [scale, setScale] = useState(1);
+export const Tile: React.FC<TileProps> = memo(
+	(props) => {
+		const boxRef = useRef(null);
 
-	useEffect(() => {
-		if (boxRef.current) {
-			setScale(1.1);
-			const timer = setTimeout(() => {
-				setScale(1);
-			}, 100);
-			return () => clearTimeout(timer);
-		}
-	}, [props.power]);
+		useEffect(() => {
+			const docStyle = getComputedStyle(document.documentElement);
+			const color = docStyle.getPropertyValue(`--tile-${props.power}`);
+			gsap.set(boxRef.current, {
+				x: props.coordinates.x,
+				y: props.coordinates.y,
+				backgroundColor: color,
+				boxShadow: `0 0 ${Math.floor(props.power)}px 1px ${color}`,
+				width: props.size,
+				height: props.size,
+			});
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, []);
 
-	return (
-		<>
-			<div
-				ref={boxRef}
-				className={`absolute rounded-xl backdrop-blur-sm opacity-95`}
-				style={{
-					transform: `translate3d(${props.coordinates.x}px, ${props.coordinates.y}px, 0) scale(${scale})`,
-					backgroundColor: `var(--tile-${props.power})`,
-					boxShadow: `0 0 ${Math.floor(props.power)}px 1px var(--tile-${props.power})`,
-					transition: `background-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out, transform ${TURN_ANIMATION_DURATION}ms cubic-bezier(0.33, 1, 0.68, 1)`,
-					width: props.size,
-					height: props.size,
-					willChange: "transform, background-color, box-shadow",
-				}}
-			>
+		useGSAP(
+			() => {
+				const docStyle = getComputedStyle(document.documentElement);
+				const color = docStyle.getPropertyValue(`--tile-${props.power}`);
+				gsap.timeline()
+					.to(boxRef.current, {
+						scale: 1.1,
+						duration: 0.1,
+					})
+					.to(boxRef.current, {
+						scale: 1,
+						duration: 0.1,
+					});
+				gsap.to(boxRef.current, {
+					backgroundColor: color,
+					boxShadow: `0 0 ${Math.floor(props.power)}px 1px ${color}`,
+					duration: 0.2,
+				});
+			},
+			{ dependencies: [props.power], scope: boxRef }
+		);
+
+		useGSAP(
+			() => {
+				const coordinates = props.coordinates;
+				const startX = Number(gsap.getProperty(boxRef.current, "x"));
+				const startY = Number(gsap.getProperty(boxRef.current, "y"));
+				if (startX !== coordinates.x) {
+					gsap.to(boxRef.current, {
+						x: coordinates.x,
+						duration: turnAnimationDuration,
+					});
+				}
+				if (startY !== coordinates.y) {
+					gsap.to(boxRef.current, {
+						y: coordinates.y,
+						duration: turnAnimationDuration,
+					});
+				}
+			},
+			{ dependencies: [props.coordinates], scope: boxRef }
+		);
+
+		return (
+			<div className={`absolute rounded-xl backdrop-blur-sm opacity-95`} ref={boxRef}>
 				{props.power >= 11 && (
-					<div
-						className="absolute bg-transparent rounded-xl animate-epic-shadow"
-						style={{
-							width: props.size,
-							height: props.size,
-						}}
-					/>
+					<div className="top-0 right-0 bottom-0 left-0 absolute bg-transparent rounded-xl animate-epic-shadow" />
 				)}
 				<span
 					style={{
@@ -57,6 +89,13 @@ export const Tile: React.FC<TileProps> = (props) => {
 					{2 ** props.power}
 				</span>
 			</div>
-		</>
-	);
-};
+		);
+	},
+	(prevProps, nextProps) => {
+		return (
+			prevProps.power === nextProps.power &&
+			prevProps.coordinates.x === nextProps.coordinates.x &&
+			prevProps.coordinates.y === nextProps.coordinates.y
+		);
+	}
+);
