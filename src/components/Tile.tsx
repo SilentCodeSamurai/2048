@@ -82,7 +82,7 @@ export const Tile: React.FC<TileProps> = memo(
 						style={{
 							backgroundColor: `var(--tile-${props.power})`,
 							boxShadow: `0 0 ${Math.floor(props.power)}px 1px var(--tile-${props.power})`,
-							transition: "background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+							transition: "background-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out",
 						}}
 					>
 						<span
