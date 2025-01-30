@@ -1,4 +1,4 @@
-import { memo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 
 import { Coordinates } from "../types";
 import { TURN_ANIMATION_DURATION } from "../constants";
@@ -17,24 +17,45 @@ export const Tile: React.FC<TileProps> = memo(
 	(props) => {
 		const boxRef = useRef(null);
 
-		useGSAP(() => {
-			gsap.set(boxRef.current, {
-				x: props.coordinates.x,
-				y: props.coordinates.y,
-			});
-		}, []);
+		const color = useMemo(
+			() => getComputedStyle(document.documentElement).getPropertyValue(`--tile-${props.power}`),
+			[props.power]
+		);
 
-		useGSAP(() => {
-			gsap.timeline()
-				.to(boxRef.current, {
-					scale: 1.1,
-					duration: 0.2,
-				})
-				.to(boxRef.current, {
-					scale: 1,
-					duration: 0.1,
+		useGSAP(
+			() => {
+				gsap.set(boxRef.current, {
+					x: props.coordinates.x,
+					y: props.coordinates.y,
+					backgroundColor: color,
+					boxShadow: `0 0 ${Math.floor(props.power)}px 1px ${color}`,
+					width: props.size,
+					height: props.size,
+					display: "block",
 				});
-		}, [props.power]);
+			},
+			{ dependencies: [], scope: boxRef }
+		);
+
+		useGSAP(
+			() => {
+				gsap.timeline()
+					.to(boxRef.current, {
+						scale: 1.1,
+						duration: 0.1,
+					})
+					.to(boxRef.current, {
+						scale: 1,
+						duration: 0.1,
+					});
+				gsap.to(boxRef.current, {
+					backgroundColor: color,
+					boxShadow: `0 0 ${Math.floor(props.power)}px 1px ${color}`,
+					duration: 0.2,
+				});
+			},
+			{ dependencies: [props.power], scope: boxRef }
+		);
 
 		useGSAP(
 			() => {
@@ -58,51 +79,24 @@ export const Tile: React.FC<TileProps> = memo(
 		);
 
 		return (
-			<>
-				<div
-					className={`absolute rounded-xl backdrop-blur-sm opacity-95`}
-					ref={boxRef}
+			<div className={`absolute rounded-xl backdrop-blur-sm opacity-95 hidden`} ref={boxRef}>
+				{props.power >= 11 && (
+					<div className="top-0 right-0 bottom-0 left-0 absolute bg-transparent rounded-xl animate-epic-shadow" />
+				)}
+				<span
 					style={{
-						width: props.size,
-						height: props.size,
+						lineHeight: `${props.size}px`,
+						fontSize: `${props.size / 2 - props.power}px`,
 					}}
+					className="bg-clip-text bg-gradient-to-br from-white to-gray-300 font-bold text-transparent animate-pulse-slow"
 				>
-					{props.power >= 11 && (
-						<div
-							className="absolute bg-transparent rounded-xl animate-epic-shadow"
-							style={{
-								width: props.size,
-								height: props.size,
-							}}
-						/>
-					)}
-					<div
-						className="top-0 right-0 bottom-0 left-0 absolute flex justify-center items-center rounded-xl"
-						style={{
-							backgroundColor: `var(--tile-${props.power})`,
-							boxShadow: `0 0 ${Math.floor(props.power)}px 1px var(--tile-${props.power})`,
-							transition: "background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-						}}
-					>
-						<span
-							style={{
-								lineHeight: `${props.size}px`,
-								fontSize: `${props.size / 2 - props.power }px`,
-							}}
-							className="bg-clip-text bg-gradient-to-br from-white to-gray-300 font-bold text-transparent animate-pulse-slow"
-						>
-							{2 ** props.power}
-						</span>
-					</div>
-				</div>
-			</>
+					{2 ** props.power}
+				</span>
+			</div>
 		);
 	},
-	(prevProps, nextProps) => {
-		return (
-			prevProps.power === nextProps.power &&
-			prevProps.coordinates.x === nextProps.coordinates.x &&
-			prevProps.coordinates.y === nextProps.coordinates.y
-		);
-	}
+	(prev, next) =>
+		prev.power === next.power &&
+		prev.coordinates.x === next.coordinates.x &&
+		prev.coordinates.y === next.coordinates.y
 );
