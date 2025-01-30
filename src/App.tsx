@@ -216,7 +216,7 @@ export default function App() {
 	};
 
 	return (
-		<div className="flex justify-center items-center bg-gradient-to-br from-gray-900 to-black p-4 min-h-screen">
+		<div className="flex justify-center items-center bg-gradient-to-br from-gray-900 to-black p-4 h-dvh touch-none">
 			<div className="text-center">
 				<div className="flex flex-row justify-between items-baseline mb-6 px-1">
 					<div className="flex flex-col items-center">
