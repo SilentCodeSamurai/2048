@@ -1,5 +1,5 @@
 import { Direction, FieldState, Merger } from "./types";
-import { KeyboardEventHandler, TouchEventHandler, useCallback, useEffect, useRef, useState } from "react";
+import { KeyboardEventHandler, TouchEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateTurn, checkIfGameIsOver, generateStartField, getFreeCoordinates } from "./utils";
 import { getHighScore, updateHighScore } from "./storage";
 
@@ -30,6 +30,8 @@ export default function App() {
 	const [fieldSize, setFieldSize] = useState(0);
 
 	const fieldChangedRef = useRef(false);
+
+	const turnQueue = useRef<Direction[]>([]);
 
 	// Focus on the game field
 	useEffect(() => {
@@ -105,23 +107,40 @@ export default function App() {
 		setGameOver(true);
 	}, [gameSize, fieldState, score]);
 
+	const makeTurn = useCallback((direction: Direction) => {
+		setAnimating(true);
+
+		const { newFieldState, newMergers, fieldChanged } = calculateTurn(gameSize, fieldState, direction);
+
+		fieldChangedRef.current = fieldChanged;
+		turnDirection.current = direction;
+
+		setFieldState(newFieldState);
+		setMergers(newMergers);
+		if (fieldChanged) {
+			setTurnsPlayed((prevState) => prevState + 1);
+		}
+	}, [gameSize, fieldState]);
+
+	useEffect(() => {
+		if (animating) return;
+		if (turnQueue.current.length === 0) return;
+		const direction = turnQueue.current.shift()!;
+		makeTurn(direction);
+	}, [animating, makeTurn]);
+
 	const handleMakeTurn = useCallback(
 		(direction: Direction) => {
-			if (animating) return;
-			setAnimating(true);
-
-			const { newFieldState, newMergers, fieldChanged } = calculateTurn(gameSize, fieldState, direction);
-
-			fieldChangedRef.current = fieldChanged;
-			turnDirection.current = direction;
-
-			setFieldState(newFieldState);
-			setMergers(newMergers);
-			if (fieldChanged) {
-				setTurnsPlayed((prevState) => prevState + 1);
+			if (animating) {
+				turnQueue.current.push(direction);
+				return;
 			}
+			if (turnQueue.current.length > 0) {
+				return;
+			}
+			makeTurn(direction);
 		},
-		[gameSize, animating, fieldState]
+		[animating, makeTurn]
 	);
 
 	const handleStartGame = useCallback(() => {
@@ -147,6 +166,7 @@ export default function App() {
 	);
 
 	const handleTouchStart: TouchEventHandler<HTMLDivElement> = (event) => {
+		event.preventDefault();
 		if (event.touches.length !== 1) return;
 		const y = event.touches[0].clientY;
 		const x = event.touches[0].clientX;
@@ -154,6 +174,7 @@ export default function App() {
 	};
 
 	const handleTouchEnd: TouchEventHandler<HTMLDivElement> = (event) => {
+		event.preventDefault();
 		const endX = event.changedTouches[0].clientX;
 		const endY = event.changedTouches[0].clientY;
 		handleSwipe({ endX, endY });
@@ -183,12 +204,30 @@ export default function App() {
 		}
 	};
 
+	const tileSize = useMemo(() => fieldSize - 20, [fieldSize]);
+
+	const tilesToRender = useMemo(() => {
+		return fieldState.tiles.map((tile) => {
+			return (
+				<Tile
+					key={tile.id}
+					size={tileSize}
+					power={tile.power}
+					coordinates={{
+						x: tile.coordinates.x * fieldSize - 15,
+						y: tile.coordinates.y * fieldSize - 15,
+					}}
+				/>
+			);
+		});
+	}, [tileSize, fieldSize, fieldState]);
+
 	return (
 		<div className="flex justify-center items-center bg-gradient-to-br from-gray-900 to-black p-4 h-dvh touch-none">
 			<div className="text-center">
 				{menuOpen ? (
 					<>
-						<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
+						<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-transparent text-5xl sm:text-6xl">
 							2048
 						</h1>
 						<div className="relative flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55 shadow-neon p-6 rounded-2xl">
@@ -199,7 +238,7 @@ export default function App() {
 										gameSize === 3 ? "shadow-neon" : ""
 									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
 								>
-									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-transparent text-5xl sm:text-6xl">
 										3
 									</h1>
 								</button>
@@ -209,7 +248,7 @@ export default function App() {
 										gameSize === 4 ? "shadow-neon" : ""
 									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
 								>
-									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-transparent text-5xl sm:text-6xl">
 										4
 									</h1>
 								</button>
@@ -219,7 +258,7 @@ export default function App() {
 										gameSize === 5 ? "shadow-neon" : ""
 									} bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 w-16 h-16 rounded-xl active:scale-95`}
 								>
-									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-5xl text-transparent sm:text-6xl">
+									<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm font-bold text-transparent text-5xl sm:text-6xl">
 										5
 									</h1>
 								</button>
@@ -228,7 +267,7 @@ export default function App() {
 								onClick={() => handleStartGame()}
 								className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
 							>
-								<h1 className="font-bold text-3xl text-black sm:text-2xl">PLAY</h1>
+								<h1 className="font-bold text-black sm:text-2xl text-3xl">PLAY</h1>
 							</button>
 						</div>
 					</>
@@ -243,7 +282,7 @@ export default function App() {
 									{score}
 								</span>
 							</div>
-							<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-5xl text-transparent sm:text-6xl">
+							<h1 className="bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-sm mb-8 font-bold text-transparent text-5xl sm:text-6xl">
 								2048
 							</h1>
 							<div className="flex flex-col items-center">
@@ -270,34 +309,24 @@ export default function App() {
 							>
 								{gameOver && (
 									<div className="top-0 right-0 bottom-0 left-0 z-10 absolute flex flex-col justify-center items-center gap-8 bg-board-bg bg-opacity-55">
-										<span className="bg-clip-text bg-gradient-to-l from-pink-100 to-purple-300 font-bold text-4xl text-transparent">
+										<span className="bg-clip-text bg-gradient-to-l from-pink-100 to-purple-300 font-bold text-transparent text-4xl">
 											HIGH SCORE: {getHighScore(gameSize)}
 										</span>
 										<button
 											onClick={() => handleStartGame()}
 											className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
 										>
-											<h1 className="font-bold text-3xl text-black sm:text-2xl">RESTART</h1>
+											<h1 className="font-bold text-black sm:text-2xl text-3xl">RESTART</h1>
 										</button>
 										<button
 											onClick={() => setMenuOpen(true)}
 											className={`bg-gradient-to-r hover:bg-gradient-to-br from-pink-100 to-purple-300 px-2 py-2 rounded-xl active:scale-95`}
 										>
-											<h1 className="font-bold text-3xl text-black sm:text-2xl">MENU</h1>
+											<h1 className="font-bold text-black sm:text-2xl text-3xl">MENU</h1>
 										</button>
 									</div>
 								)}
-								{fieldState.tiles.map((tile) => (
-									<Tile
-										size={fieldSize - 20}
-										key={tile.id}
-										power={tile.power}
-										coordinates={{
-											x: tile.coordinates.x * fieldSize - 15,
-											y: tile.coordinates.y * fieldSize - 15,
-										}}
-									/>
-								))}
+								{tilesToRender}
 							</div>
 						</div>
 					</>
